@@ -13,27 +13,22 @@ export function detectProvider(endpoint: string): 'azure' | 'openai' {
 export function buildLLMConfig(
   endpoint: string,
   apiKey: string,
-  deploymentName?: string,
-  model?: string
+  model: string
 ): LLMConfig {
   const provider = detectProvider(endpoint);
 
   if (provider === 'azure') {
-    if (!deploymentName) {
-      throw new Error('deploymentName is required for Azure OpenAI endpoints');
-    }
-
     return {
       provider: 'azure',
       endpoint,
       apiKey,
-      deploymentName
+      deploymentName: model
     };
   }
 
   return {
     provider: 'openai',
     apiKey,
-    model: model || 'gpt-4o'
+    model
   };
 }

@@ -19,6 +19,11 @@ router.post('/chat/completions', async (req: Request, res: Response) => {
       return;
     }
 
+    if (!request.model || typeof request.model !== 'string') {
+      res.status(400).json({ error: 'model is required' });
+      return;
+    }
+
     if (!request.messages || !Array.isArray(request.messages)) {
       res.status(400).json({ error: 'messages array is required' });
       return;
@@ -27,7 +32,6 @@ router.post('/chat/completions', async (req: Request, res: Response) => {
     const config = buildLLMConfig(
       request.endpoint,
       request.apiKey,
-      request.deploymentName,
       request.model
     );
 

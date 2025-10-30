@@ -12,9 +12,11 @@ A unified API service that automatically routes requests to either Azure OpenAI 
 
 ## How It Works
 
-The engine examines the `endpoint` field in each request:
-- URLs containing `azure.com` or `openai.azure.com` → Azure OpenAI
-- All other URLs → Standard OpenAI
+The engine examines the `endpoint` field in each request and automatically routes to the appropriate provider:
+- URLs containing `azure.com` or `openai.azure.com` → Azure OpenAI (uses `model` as deployment name)
+- All other URLs → Standard OpenAI (uses `model` as model name)
+
+You always use the same request format with `model` field - the backend handles the differences internally.
 
 ## Installation
 
@@ -49,7 +51,9 @@ npm start
 
 Send chat completion requests to either Azure OpenAI or standard OpenAI.
 
-#### Azure OpenAI Example
+#### Request Format (Same for Both Providers)
+
+**Azure OpenAI Example:**
 
 ```bash
 curl -X POST http://localhost:3000/api/chat/completions \
@@ -57,7 +61,7 @@ curl -X POST http://localhost:3000/api/chat/completions \
   -d '{
     "endpoint": "https://your-resource.openai.azure.com/",
     "apiKey": "your-azure-api-key",
-    "deploymentName": "gpt-4o",
+    "model": "gpt-4o",
     "messages": [
       {"role": "user", "content": "Hello!"}
     ],
@@ -66,7 +70,7 @@ curl -X POST http://localhost:3000/api/chat/completions \
   }'
 ```
 
-#### Standard OpenAI Example
+**Standard OpenAI Example:**
 
 ```bash
 curl -X POST http://localhost:3000/api/chat/completions \
@@ -83,14 +87,15 @@ curl -X POST http://localhost:3000/api/chat/completions \
   }'
 ```
 
+Note: The request format is identical. For Azure, the `model` field is used as the deployment name internally.
+
 #### Request Body
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `endpoint` | string | Yes | The LLM provider endpoint URL |
 | `apiKey` | string | Yes | API key for authentication |
-| `deploymentName` | string | Azure only | Deployment name (required for Azure) |
-| `model` | string | OpenAI only | Model name (e.g., "gpt-4o", defaults to "gpt-4o") |
+| `model` | string | Yes | Model/deployment name (e.g., "gpt-4o"). For Azure, this is the deployment name. For OpenAI, this is the model name. |
 | `messages` | array | Yes | Array of message objects with `role` and `content` |
 | `temperature` | number | No | Sampling temperature (0-2, default: 0.7) |
 | `maxTokens` | number | No | Maximum tokens to generate (default: 1000) |
@@ -158,16 +163,11 @@ src/
 ## Integration Example
 
 ```typescript
-async function callLLM(endpoint: string, apiKey: string, deploymentOrModel: string) {
-  const isAzure = endpoint.includes('azure.com');
-
+async function callLLM(endpoint: string, apiKey: string, model: string) {
   const payload = {
     endpoint,
     apiKey,
-    ...(isAzure
-      ? { deploymentName: deploymentOrModel }
-      : { model: deploymentOrModel }
-    ),
+    model,
     messages: [
       { role: 'user', content: 'Hello!' }
     ]
@@ -181,6 +181,10 @@ async function callLLM(endpoint: string, apiKey: string, deploymentOrModel: stri
 
   return await response.json();
 }
+
+// Works with both Azure and OpenAI!
+callLLM('https://your-resource.openai.azure.com/', 'azure-key', 'gpt-4o');
+callLLM('https://api.openai.com/v1', 'openai-key', 'gpt-4o');
 ```
 
 ## Error Handling
