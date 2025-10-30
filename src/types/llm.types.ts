@@ -12,6 +12,10 @@ export interface ChatMessage {
 }
 
 export interface ChatCompletionRequest {
+  endpoint: string;
+  apiKey: string;
+  deploymentName?: string;
+  model?: string;
   messages: ChatMessage[];
   temperature?: number;
   maxTokens?: number;
