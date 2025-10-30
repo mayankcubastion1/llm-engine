@@ -12,7 +12,10 @@ function getSecret(): Buffer {
 function getFernetToken(): fernet.Token {
   const secret = getSecret();
   const fernetSecret = new fernet.Secret(secret.toString('base64').replace(/\+/g, '-').replace(/\//g, '_'));
-  return new fernet.Token({ secret: fernetSecret });
+  return new fernet.Token({
+    secret: fernetSecret,
+    ttl: 0
+  });
 }
 
 export function encryptApiKey(apiKey: string): string {
