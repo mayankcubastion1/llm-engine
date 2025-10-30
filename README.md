@@ -1,22 +1,23 @@
 # LLM Engine
 
-A unified API service that automatically routes requests to either Azure OpenAI or standard OpenAI based on the endpoint provided in each request. This allows your applications to work with multiple LLM providers through a single, consistent interface.
+A unified API service that automatically routes requests to either Azure OpenAI or standard OpenAI based on configuration stored in a PostgreSQL database. This allows your applications to work with multiple LLM providers through a single, consistent interface without managing credentials in your application code.
 
 ## Features
 
+- **Database-Driven Configuration**: LLM credentials and settings stored securely in PostgreSQL
 - **Automatic Provider Detection**: Analyzes endpoint URLs to determine whether to use Azure OpenAI or standard OpenAI
-- **Single API Interface**: One endpoint for all LLM requests, regardless of provider
-- **Request-Level Credentials**: Pass credentials with each request for maximum flexibility
+- **Single API Interface**: One endpoint for all LLM requests, no credentials required in API calls
+- **Encrypted API Keys**: API keys are encrypted at rest using AES encryption
 - **TypeScript**: Fully typed for better development experience
 - **Express-based**: Fast, minimal REST API
 
 ## How It Works
 
-The engine examines the `endpoint` field in each request and automatically routes to the appropriate provider:
-- URLs containing `azure.com` or `openai.azure.com` → Azure OpenAI (uses `model` as deployment name)
-- All other URLs → Standard OpenAI (uses `model` as model name)
-
-You always use the same request format with `model` field - the backend handles the differences internally.
+1. LLM configurations (endpoints, API keys, models) are stored in a PostgreSQL database table
+2. API keys are encrypted using AES encryption before storage
+3. The application fetches the default configuration from the database
+4. When you make a chat completion request, you only send messages - the engine handles everything else
+5. The engine automatically routes to the appropriate provider based on the stored configuration
 
 ## Installation
 
@@ -26,10 +27,103 @@ npm install
 
 ## Configuration
 
+### Environment Variables
+
 Create a `.env` file:
 
 ```bash
 PORT=3000
+
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=llm_engine
+DB_USER=postgres
+DB_PASSWORD=postgres
+
+# Encryption Key (must be 32 characters for AES-256)
+ENCRYPTION_KEY=your-32-character-encryption-key
+```
+
+### Database Setup
+
+1. Create the database:
+
+```sql
+CREATE DATABASE llm_engine;
+```
+
+2. Create the LLM provider enum:
+
+```sql
+CREATE TYPE llm_provider AS ENUM ('azure_openai', 'openai', 'anthropic', 'gemini');
+```
+
+3. Create the configuration table:
+
+```sql
+CREATE TABLE IF NOT EXISTS ai_llm_configs (
+    id VARCHAR(36) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    provider_name llm_provider NOT NULL,
+    model_name VARCHAR(100) NOT NULL,
+    api_key_encrypted TEXT NOT NULL,
+    temperature NUMERIC DEFAULT 0.7,
+    max_tokens INT DEFAULT 2000,
+    is_default BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+4. Insert a default configuration (example with OpenAI):
+
+```sql
+-- First, encrypt your API key using the application's encryption utility
+-- Then insert the encrypted value
+INSERT INTO ai_llm_configs (
+    id,
+    name,
+    provider_name,
+    model_name,
+    api_key_encrypted,
+    temperature,
+    max_tokens,
+    is_default
+) VALUES (
+    'uuid-here',
+    'OpenAI GPT-4',
+    'openai',
+    'gpt-4o',
+    'encrypted-api-key-here',
+    0.7,
+    2000,
+    true
+);
+```
+
+For Azure OpenAI, use the full endpoint URL as the provider_name:
+
+```sql
+INSERT INTO ai_llm_configs (
+    id,
+    name,
+    provider_name,
+    model_name,
+    api_key_encrypted,
+    temperature,
+    max_tokens,
+    is_default
+) VALUES (
+    'uuid-here',
+    'Azure GPT-4',
+    'https://your-resource.openai.azure.com/',
+    'gpt-4o',
+    'encrypted-api-key-here',
+    0.7,
+    2000,
+    true
+);
 ```
 
 ## Running the Service
@@ -51,26 +145,29 @@ npm start
 docker build -t llm-engine .
 
 # Run the container
-docker run -p 3000:3000 -e PORT=3000 llm-engine
+docker run -p 3000:3000 \
+  -e PORT=3000 \
+  -e DB_HOST=your-db-host \
+  -e DB_PORT=5432 \
+  -e DB_NAME=llm_engine \
+  -e DB_USER=postgres \
+  -e DB_PASSWORD=your-password \
+  -e ENCRYPTION_KEY=your-32-character-key \
+  llm-engine
 ```
 
 ## API Endpoints
 
 ### POST /api/chat/completions
 
-Send chat completion requests to either Azure OpenAI or standard OpenAI.
+Send chat completion requests. The engine automatically uses the default LLM configuration from the database.
 
-#### Request Format (Same for Both Providers)
-
-**Azure OpenAI Example:**
+#### Request Format
 
 ```bash
 curl -X POST http://localhost:3000/api/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "endpoint": "https://your-resource.openai.azure.com/",
-    "apiKey": "your-azure-api-key",
-    "model": "gpt-4o",
     "messages": [
       {"role": "user", "content": "Hello!"}
     ],
@@ -79,35 +176,15 @@ curl -X POST http://localhost:3000/api/chat/completions \
   }'
 ```
 
-**Standard OpenAI Example:**
-
-```bash
-curl -X POST http://localhost:3000/api/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "endpoint": "https://api.openai.com/v1",
-    "apiKey": "your-openai-api-key",
-    "model": "gpt-4o",
-    "messages": [
-      {"role": "user", "content": "Hello!"}
-    ],
-    "temperature": 0.7,
-    "maxTokens": 1000
-  }'
-```
-
-Note: The request format is identical. For Azure, the `model` field is used as the deployment name internally.
+Note: No credentials or endpoints needed in the request! Everything is configured in the database.
 
 #### Request Body
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `endpoint` | string | Yes | The LLM provider endpoint URL |
-| `apiKey` | string | Yes | API key for authentication |
-| `model` | string | Yes | Model/deployment name (e.g., "gpt-4o"). For Azure, this is the deployment name. For OpenAI, this is the model name. |
 | `messages` | array | Yes | Array of message objects with `role` and `content` |
-| `temperature` | number | No | Sampling temperature (0-2, default: 0.7) |
-| `maxTokens` | number | No | Maximum tokens to generate (default: 1000) |
+| `temperature` | number | No | Sampling temperature (0-2, defaults to database config) |
+| `maxTokens` | number | No | Maximum tokens to generate (defaults to database config) |
 | `topP` | number | No | Nucleus sampling parameter (default: 1) |
 | `frequencyPenalty` | number | No | Frequency penalty (default: 0) |
 | `presencePenalty` | number | No | Presence penalty (default: 0) |
@@ -159,12 +236,16 @@ Response:
 ```
 src/
 ├── index.ts                      # Express app entry point
+├── config/
+│   └── database.config.ts       # PostgreSQL connection configuration
 ├── routes/
 │   └── chat.routes.ts           # API route handlers
 ├── services/
-│   └── llm-client.factory.ts    # LLM client factory (handles both providers)
+│   ├── llm-client.factory.ts    # LLM client factory (handles both providers)
+│   └── llm-config.service.ts    # Database service for LLM configs
 ├── utils/
-│   └── provider.detector.ts     # Provider detection logic
+│   ├── provider.detector.ts     # Provider detection logic
+│   └── encryption.util.ts       # API key encryption/decryption
 └── types/
     └── llm.types.ts             # TypeScript type definitions
 ```
@@ -172,13 +253,10 @@ src/
 ## Integration Example
 
 ```typescript
-async function callLLM(endpoint: string, apiKey: string, model: string) {
+async function callLLM(message: string) {
   const payload = {
-    endpoint,
-    apiKey,
-    model,
     messages: [
-      { role: 'user', content: 'Hello!' }
+      { role: 'user', content: message }
     ]
   };
 
@@ -191,9 +269,9 @@ async function callLLM(endpoint: string, apiKey: string, model: string) {
   return await response.json();
 }
 
-// Works with both Azure and OpenAI!
-callLLM('https://your-resource.openai.azure.com/', 'azure-key', 'gpt-4o');
-callLLM('https://api.openai.com/v1', 'openai-key', 'gpt-4o');
+// Simple - no credentials needed!
+const response = await callLLM('Hello, how are you?');
+console.log(response.choices[0].message.content);
 ```
 
 ## Error Handling

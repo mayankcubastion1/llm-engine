@@ -1,7 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { LLMClientFactory } from '../services/llm-client.factory';
-import { ChatCompletionRequest } from '../types/llm.types';
+import { ChatCompletionRequest, InternalChatCompletionRequest } from '../types/llm.types';
 import { buildLLMConfig } from '../utils/provider.detector';
+import { LLMConfigService } from '../services/llm-config.service';
 
 const router = Router();
 
@@ -9,34 +10,39 @@ router.post('/chat/completions', async (req: Request, res: Response) => {
   try {
     const request: ChatCompletionRequest = req.body;
 
-    if (!request.endpoint || typeof request.endpoint !== 'string') {
-      res.status(400).json({ error: 'endpoint is required' });
-      return;
-    }
-
-    if (!request.apiKey || typeof request.apiKey !== 'string') {
-      res.status(400).json({ error: 'apiKey is required' });
-      return;
-    }
-
-    if (!request.model || typeof request.model !== 'string') {
-      res.status(400).json({ error: 'model is required' });
-      return;
-    }
-
     if (!request.messages || !Array.isArray(request.messages)) {
       res.status(400).json({ error: 'messages array is required' });
       return;
     }
 
+    const llmConfigService = new LLMConfigService();
+    const defaultConfig = await llmConfigService.getDefaultConfig();
+
+    if (!defaultConfig) {
+      res.status(500).json({
+        error: 'No default LLM configuration found',
+        message: 'Please configure a default LLM provider in the database'
+      });
+      return;
+    }
+
     const config = buildLLMConfig(
-      request.endpoint,
-      request.apiKey,
-      request.model
+      defaultConfig.endpoint,
+      defaultConfig.apiKey,
+      defaultConfig.modelName
     );
 
+    const internalRequest: InternalChatCompletionRequest = {
+      ...request,
+      endpoint: defaultConfig.endpoint,
+      apiKey: defaultConfig.apiKey,
+      model: defaultConfig.modelName,
+      temperature: request.temperature ?? defaultConfig.temperature,
+      maxTokens: request.maxTokens ?? defaultConfig.maxTokens
+    };
+
     const llmClient = new LLMClientFactory(config);
-    const response = await llmClient.chatCompletion(request);
+    const response = await llmClient.chatCompletion(internalRequest);
 
     res.json(response);
   } catch (error) {

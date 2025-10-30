@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { AzureOpenAI as AzureOpenAIClient } from 'openai';
-import { LLMConfig, ChatCompletionRequest, ChatCompletionResponse } from '../types/llm.types';
+import { LLMConfig, InternalChatCompletionRequest, ChatCompletionResponse } from '../types/llm.types';
 
 export class LLMClientFactory {
   private config: LLMConfig;
@@ -30,7 +30,7 @@ export class LLMClientFactory {
     }
   }
 
-  async chatCompletion(request: ChatCompletionRequest): Promise<ChatCompletionResponse> {
+  async chatCompletion(request: InternalChatCompletionRequest): Promise<ChatCompletionResponse> {
     try {
       const params: any = {
         messages: request.messages,

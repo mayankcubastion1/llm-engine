@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import chatRoutes from './routes/chat.routes';
+import { testConnection } from './config/database.config';
 
 dotenv.config();
 
@@ -23,6 +24,16 @@ app.get('/', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`LLM Engine running on port ${PORT}`);
-});
+const startServer = async () => {
+  const dbConnected = await testConnection();
+  if (!dbConnected) {
+    console.error('Failed to connect to database. Exiting...');
+    process.exit(1);
+  }
+
+  app.listen(PORT, () => {
+    console.log(`LLM Engine running on port ${PORT}`);
+  });
+};
+
+startServer();

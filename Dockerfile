@@ -20,6 +20,14 @@ RUN npm ci --only=production
 
 COPY --from=builder /app/dist ./dist
 
+ENV PORT=3000 \
+    DB_HOST=localhost \
+    DB_PORT=5432 \
+    DB_NAME=llm_engine \
+    DB_USER=postgres \
+    DB_PASSWORD=postgres \
+    ENCRYPTION_KEY=change-me-in-production
+
 EXPOSE 3000
 
 CMD ["node", "dist/index.js"]
