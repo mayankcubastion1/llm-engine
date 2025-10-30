@@ -15,48 +15,18 @@ export const pool = new Pool({
 });
 
 pool.on('error', (err) => {
-  console.error(JSON.stringify({
-    level: 'error',
-    message: 'Unexpected error on idle database client',
-    error: err.message,
-    stack: err.stack,
-    timestamp: new Date().toISOString()
-  }));
+  console.error('Unexpected error on idle client', err);
   process.exit(-1);
 });
 
 export const testConnection = async () => {
   try {
-    console.log(JSON.stringify({
-      level: 'info',
-      message: 'Testing database connection',
-      config: {
-        host: process.env.DB_HOST,
-        port: process.env.DB_PORT,
-        database: process.env.DB_NAME,
-        user: process.env.DB_USER
-      },
-      timestamp: new Date().toISOString()
-    }));
-
     const client = await pool.connect();
-
-    console.log(JSON.stringify({
-      level: 'info',
-      message: 'Database connected successfully',
-      timestamp: new Date().toISOString()
-    }));
-
+    console.log('Database connected successfully');
     client.release();
     return true;
   } catch (error) {
-    console.error(JSON.stringify({
-      level: 'error',
-      message: 'Database connection failed',
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-      timestamp: new Date().toISOString()
-    }));
+    console.error('Database connection failed:', error);
     return false;
   }
 };
