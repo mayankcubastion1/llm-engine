@@ -45,24 +45,16 @@ DB_PASSWORD=postgres
 ENCRYPTION_KEY=your-32-character-encryption-key
 ```
 
-### Database Setup
+### Database Configuration
 
-1. Create the database:
+The application connects to an existing PostgreSQL database that contains the `ai_llm_configs` table. Ensure your database connection details are set correctly in the environment variables above.
 
-```sql
-CREATE DATABASE llm_engine;
-```
+**Expected Table Schema:**
 
-2. Create the LLM provider enum:
+The application expects the following table to exist in your database:
 
 ```sql
-CREATE TYPE llm_provider AS ENUM ('azure_openai', 'openai', 'anthropic', 'gemini');
-```
-
-3. Create the configuration table:
-
-```sql
-CREATE TABLE IF NOT EXISTS ai_llm_configs (
+CREATE TABLE ai_llm_configs (
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     provider_name llm_provider NOT NULL,
@@ -76,55 +68,12 @@ CREATE TABLE IF NOT EXISTS ai_llm_configs (
 );
 ```
 
-4. Insert a default configuration (example with OpenAI):
+**How It Works:**
 
-```sql
--- First, encrypt your API key using the application's encryption utility
--- Then insert the encrypted value
-INSERT INTO ai_llm_configs (
-    id,
-    name,
-    provider_name,
-    model_name,
-    api_key_encrypted,
-    temperature,
-    max_tokens,
-    is_default
-) VALUES (
-    'uuid-here',
-    'OpenAI GPT-4',
-    'openai',
-    'gpt-4o',
-    'encrypted-api-key-here',
-    0.7,
-    2000,
-    true
-);
-```
-
-For Azure OpenAI, use the full endpoint URL as the provider_name:
-
-```sql
-INSERT INTO ai_llm_configs (
-    id,
-    name,
-    provider_name,
-    model_name,
-    api_key_encrypted,
-    temperature,
-    max_tokens,
-    is_default
-) VALUES (
-    'uuid-here',
-    'Azure GPT-4',
-    'https://your-resource.openai.azure.com/',
-    'gpt-4o',
-    'encrypted-api-key-here',
-    0.7,
-    2000,
-    true
-);
-```
+- The application queries the table for the row where `is_default = TRUE`
+- The `api_key_encrypted` field is decrypted using the `ENCRYPTION_KEY` environment variable
+- For OpenAI providers, set `provider_name` to `'openai'`
+- For Azure OpenAI providers, set `provider_name` to the full Azure endpoint URL (e.g., `'https://your-resource.openai.azure.com/'`)
 
 ## Running the Service
 
