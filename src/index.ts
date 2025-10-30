@@ -25,14 +25,36 @@ app.get('/', (req, res) => {
 });
 
 const startServer = async () => {
+  console.log(JSON.stringify({
+    level: 'info',
+    message: 'Starting LLM Engine server',
+    port: PORT,
+    nodeEnv: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString()
+  }));
+
   const dbConnected = await testConnection();
   if (!dbConnected) {
-    console.error('Failed to connect to database. Exiting...');
+    console.error(JSON.stringify({
+      level: 'error',
+      message: 'Failed to connect to database. Exiting...',
+      timestamp: new Date().toISOString()
+    }));
     process.exit(1);
   }
 
   app.listen(PORT, () => {
-    console.log(`LLM Engine running on port ${PORT}`);
+    console.log(JSON.stringify({
+      level: 'info',
+      message: 'LLM Engine server started successfully',
+      port: PORT,
+      endpoints: {
+        root: '/',
+        health: '/api/health',
+        chatCompletions: '/api/chat/completions'
+      },
+      timestamp: new Date().toISOString()
+    }));
   });
 };
 
