@@ -1,18 +1,14 @@
-import * as crypto from 'crypto';
-import * as fernet from 'fernet';
+import CryptoJS from 'crypto-js';
 
-const ENCRYPTION_KEY = 'change-this-to-a-secure-key-32-bytes!!';
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '';
 
-function getSecret(): Buffer {
-  const hash = crypto.createHash('sha256');
-  hash.update(ENCRYPTION_KEY);
-  return hash.digest();
-}
-
-function getFernetToken(): fernet.Token {
-  const secret = getSecret();
-  const fernetSecret = new fernet.Secret(secret.toString('base64').replace(/\+/g, '-').replace(/\//g, '_'));
-  return new fernet.Token({ secret: fernetSecret });
+if (!ENCRYPTION_KEY) {
+  console.error(JSON.stringify({
+    level: 'error',
+    message: 'ENCRYPTION_KEY environment variable is required',
+    timestamp: new Date().toISOString()
+  }));
+  throw new Error('ENCRYPTION_KEY environment variable is required');
 }
 
 export function encryptApiKey(apiKey: string): string {
@@ -24,8 +20,7 @@ export function encryptApiKey(apiKey: string): string {
       timestamp: new Date().toISOString()
     }));
 
-    const token = getFernetToken();
-    const encrypted = token.encode(apiKey);
+    const encrypted = CryptoJS.AES.encrypt(apiKey, ENCRYPTION_KEY).toString();
 
     console.log(JSON.stringify({
       level: 'debug',
@@ -60,8 +55,8 @@ export function decryptApiKey(encryptedApiKey: string): string {
       throw new Error('Encrypted API key is empty or undefined');
     }
 
-    const token = getFernetToken();
-    const decrypted = token.decode(encryptedApiKey);
+    const bytes = CryptoJS.AES.decrypt(encryptedApiKey, ENCRYPTION_KEY);
+    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
 
     if (!decrypted || decrypted.trim() === '') {
       console.error(JSON.stringify({
