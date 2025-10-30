@@ -119,24 +119,17 @@ curl -X POST http://localhost:3000/api/chat/completions \
   -d '{
     "messages": [
       {"role": "user", "content": "Hello!"}
-    ],
-    "temperature": 0.7,
-    "maxTokens": 1000
+    ]
   }'
 ```
 
-Note: No credentials or endpoints needed in the request! Everything is configured in the database.
+Note: Only send messages! All other parameters (temperature, max_tokens, model, credentials) are fetched from the database configuration.
 
 #### Request Body
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `messages` | array | Yes | Array of message objects with `role` and `content` |
-| `temperature` | number | No | Sampling temperature (0-2, defaults to database config) |
-| `maxTokens` | number | No | Maximum tokens to generate (defaults to database config) |
-| `topP` | number | No | Nucleus sampling parameter (default: 1) |
-| `frequencyPenalty` | number | No | Frequency penalty (default: 0) |
-| `presencePenalty` | number | No | Presence penalty (default: 0) |
 
 #### Response Format
 

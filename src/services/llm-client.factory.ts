@@ -34,11 +34,8 @@ export class LLMClientFactory {
     try {
       const params: any = {
         messages: request.messages,
-        temperature: request.temperature ?? 0.7,
-        max_tokens: request.maxTokens ?? 1000,
-        top_p: request.topP ?? 1,
-        frequency_penalty: request.frequencyPenalty ?? 0,
-        presence_penalty: request.presencePenalty ?? 0,
+        temperature: request.temperature,
+        max_tokens: request.maxTokens,
       };
 
       if (this.config.provider === 'azure') {

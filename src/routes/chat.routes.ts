@@ -33,12 +33,12 @@ router.post('/chat/completions', async (req: Request, res: Response) => {
     );
 
     const internalRequest: InternalChatCompletionRequest = {
-      ...request,
+      messages: request.messages,
       endpoint: defaultConfig.endpoint,
       apiKey: defaultConfig.apiKey,
       model: defaultConfig.modelName,
-      temperature: request.temperature ?? defaultConfig.temperature,
-      maxTokens: request.maxTokens ?? defaultConfig.maxTokens
+      temperature: defaultConfig.temperature,
+      maxTokens: defaultConfig.maxTokens
     };
 
     const llmClient = new LLMClientFactory(config);

@@ -13,18 +13,14 @@ export interface ChatMessage {
 
 export interface ChatCompletionRequest {
   messages: ChatMessage[];
-  temperature?: number;
-  maxTokens?: number;
-  topP?: number;
-  frequencyPenalty?: number;
-  presencePenalty?: number;
-  stream?: boolean;
 }
 
 export interface InternalChatCompletionRequest extends ChatCompletionRequest {
   endpoint: string;
   apiKey: string;
   model: string;
+  temperature: number;
+  maxTokens: number;
 }
 
 export interface ChatCompletionResponse {
