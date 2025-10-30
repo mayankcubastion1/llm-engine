@@ -45,6 +45,15 @@ npm run build
 npm start
 ```
 
+### Docker
+```bash
+# Build the image
+docker build -t llm-engine .
+
+# Run the container
+docker run -p 3000:3000 -e PORT=3000 llm-engine
+```
+
 ## API Endpoints
 
 ### POST /api/chat/completions
@@ -202,6 +211,26 @@ Error response format:
   "message": "Detailed error message"
 }
 ```
+
+## Deployment
+
+### Jenkins Pipeline
+
+The project includes a Jenkinsfile for CI/CD deployment. Required Jenkins parameters:
+
+- `targetImage`: Docker image name (e.g., "llm-engine")
+- `build_number`: Build number for image tagging
+- `harbor_cred`: Harbor registry credentials ID
+- `argocd_server`: ArgoCD server URL
+- `argocd_appName`: ArgoCD application name
+- `argocd_jenkinsDeployRole`: ArgoCD authentication token credential ID
+- `argocd_statefuleset_name`: StatefulSet name to restart
+
+The pipeline:
+1. Clones the repository
+2. Builds the Docker image
+3. Pushes to Harbor registry
+4. Restarts the StatefulSet via ArgoCD
 
 ## License
 
