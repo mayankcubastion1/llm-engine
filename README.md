@@ -42,7 +42,7 @@ DB_USER=postgres
 DB_PASSWORD=postgres
 
 # Encryption Key (must be 32 characters for AES-256)
-ENCRYPTION_KEY=your-32-character-encryption-key
+API_KEY_ENCRYPTION_KEY=your-32-character-encryption-key
 ```
 
 ### Database Configuration
@@ -71,7 +71,7 @@ CREATE TABLE ai_llm_configs (
 **How It Works:**
 
 - The application queries the table for the row where `is_default = TRUE`
-- The `api_key_encrypted` field is decrypted using the `ENCRYPTION_KEY` environment variable
+- The `api_key_encrypted` field is decrypted using the `API_KEY_ENCRYPTION_KEY` environment variable
 - For OpenAI providers, set `provider_name` to `'openai'`
 - For Azure OpenAI providers, set `provider_name` to the full Azure endpoint URL (e.g., `'https://your-resource.openai.azure.com/'`)
 
@@ -101,7 +101,7 @@ docker run -p 3000:3000 \
   -e DB_NAME=llm_engine \
   -e DB_USER=postgres \
   -e DB_PASSWORD=your-password \
-  -e ENCRYPTION_KEY=your-32-character-key \
+  -e API_KEY_ENCRYPTION_KEY=your-32-character-key \
   llm-engine
 ```
 

@@ -1,11 +1,11 @@
 import * as crypto from 'crypto';
 import * as fernet from 'fernet';
 
-const ENCRYPTION_KEY = 'change-this-to-a-secure-key-32-bytes!!';
+const API_KEY_ENCRYPTION_KEY = 'default-secret-key-change-in-production';
 
 function getSecret(): Buffer {
   const hash = crypto.createHash('sha256');
-  hash.update(ENCRYPTION_KEY);
+  hash.update(API_KEY_ENCRYPTION_KEY);
   return hash.digest();
 }
 
@@ -74,7 +74,7 @@ export function decryptApiKey(encryptedApiKey: string): string {
         encryptedPreview: encryptedApiKey.substring(0, 20),
         timestamp: new Date().toISOString()
       }));
-      throw new Error('Decryption failed: resulted in empty string. This usually means the ENCRYPTION_KEY is incorrect or the data was encrypted with a different key.');
+      throw new Error('Decryption failed: resulted in empty string. This usually means the API_KEY_ENCRYPTION_KEY is incorrect or the data was encrypted with a different key.');
     }
 
     console.log(JSON.stringify({

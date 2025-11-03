@@ -26,7 +26,7 @@ ENV PORT=3000 \
     DB_NAME=llm_engine \
     DB_USER=postgres \
     DB_PASSWORD=postgres \
-    ENCRYPTION_KEY=default-secret-key-change-in-production
+    API_KEY_ENCRYPTION_KEY=default-secret-key-change-in-production
 
 EXPOSE 3000
 
